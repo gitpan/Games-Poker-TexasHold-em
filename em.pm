@@ -1,6 +1,6 @@
 package Games::Poker::TexasHold'em;
 use strict;
-our $VERSION = '1.2';
+our $VERSION = '1.4';
 use Carp;
 
 my @stages = qw( preflop flop turn river showdown);
@@ -50,7 +50,7 @@ sub new {
     my @players = @{$args{players}};
     $args{seats} = { map { $players[$_]->{name} => $_ } 0..$#players };
     $args{button} = $args{next} = $args{seats}->{$args{button}};
-    for (@players) { $_->{in} = 0 }
+    for (@players) { $_->{in} = $_->{in_this_round} = 0 }
     $args{unfolded} = @players;
     $args{board} = [];
     $args{hole} = [];
@@ -202,7 +202,7 @@ sub pot_square {
     my $self = shift;
     for (@{$self->{players}}) { 
         next if $_->{folded};
-        return 0 if $_->{in} != $self->{current_bet} 
+        return 0 if $_->{in_this_round} != $self->{current_bet} 
     }
     return 1;
 }
@@ -287,6 +287,7 @@ sub _put_in {
     my $who = $self->{players}->[$self->{next}];
     $who->{bankroll} -= $amount;
     $who->{in} += $amount;
+    $who->{in_this_round} += $amount;
 }
 
 =head3 fold
@@ -315,7 +316,7 @@ that, but they're identical.
 sub check_call {
     my $self = shift;
     my $player = $self->{players}->[$self->{next}];
-    my $short = $self->{current_bet} - $player->{in};
+    my $short = $self->{current_bet} - $player->{in_this_round};
     $self->_put_in($short);
     $self->_advance;
     return $short;
@@ -345,7 +346,7 @@ sub bet_raise {
     my ($self, $amount) = @_;
     if (!$amount or $amount < $self->{bet}) { $amount = $self->{bet} };
     my $player = $self->{players}->[$self->{next}];
-    my $short = $self->{current_bet} - $player->{in};
+    my $short = $self->{current_bet} - $player->{in_this_round};
     if ($self->{limit} and $amount > $self->{limit}) { 
         $amount = $self->{limit} 
     }
@@ -376,6 +377,8 @@ board.
 sub next_stage {
     my $self = shift;
     return 0 unless $self->pot_square;
+    $self->{current_bet} = 0;
+    for (@{$self->{players}}) { $_->{in_this_round} = 0 }
     $self->{stage}++;
     my @cards = @_ unless $self->stage eq "showdown"; # No more cards now!
     push @{$self->{board}}, @cards;
