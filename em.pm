@@ -1,6 +1,6 @@
 package Games::Poker::TexasHold'em;
 use strict;
-our $VERSION = '1.1';
+our $VERSION = '1.2';
 use Carp;
 
 my @stages = qw( preflop flop turn river showdown);
@@ -161,7 +161,7 @@ sub folded {
 
 sub _rationalise_player {
     my ($self, $player) = @_;
-    return $player if $player =~ /^\d+$/ and $self->{players}->[$player];
+    return $player if $player =~ /^-?\d+$/ and $self->{players}->[$player];
     my $seat = $self->{seats}{$player};
     return $seat if defined $seat;
     croak "Couldn't find player $player";
@@ -240,14 +240,17 @@ Returns a nice table summarizing what's going on in the game.
 sub status {
     my $self = shift;
     my @players = @{$self->{players}};
-    my $output = "Pot: ".$self->pot."\n";
+    my $output = "Pot: ".$self->pot." Stage: ".$self->stage."\n";
     $output .= "? ". sprintf("%20s %6s %6s", qw[Name Bankroll InPot])."\n";
     for (0..$#players) {
         my $p = $players[$_];
-        my $status = $p->{folded}  ? "F" :
-                     (!$self->pot_square and $self->{next} == $_) ? "*" : " ";
+        my $status;
+        if ($p->{folded}) { $status = "F" }
+        elsif ($self->{next} != $_) { $status = " " }
+        elsif ($self->pot_square) { $status="." }
+        else { $status = "*" }
         $output .= "$status ";
-        $output .= sprintf("%20s \$%5d \$%5d", $p->{name}, $p->{bankroll}, $p->{in});
+        $output .= sprintf("%20s \$% 5d \$% 5d", $p->{name}, $p->{bankroll}, $p->{in});
         $output .="\n";
     }
     return $output;
@@ -273,9 +276,9 @@ sub blinds {
     $self->{current_bet} = $big;
     # Play *is* advanced, but it goes backwards two first
     $self->{next}-=2;
-    $self->_put_in($big);
-    $self->_advance;
     $self->_put_in($small);
+    $self->_advance;
+    $self->_put_in($big);
     $self->_advance;
 }
 
@@ -347,7 +350,7 @@ sub bet_raise {
         $amount = $self->{limit} 
     }
     if ($amount < $short) { croak "You need to raise more than the call!" }
-    $self->{current_bet} = $amount;
+    $self->{current_bet} += $amount-$short;
     $self->_put_in($amount);
     $self->_advance;
     return $amount;
