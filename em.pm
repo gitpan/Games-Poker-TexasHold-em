@@ -1,6 +1,6 @@
 package Games::Poker::TexasHold'em;
 use strict;
-our $VERSION = '1.0';
+our $VERSION = '1.1';
 use Carp;
 
 my @stages = qw( preflop flop turn river showdown);
@@ -53,6 +53,7 @@ sub new {
     for (@players) { $_->{in} = 0 }
     $args{unfolded} = @players;
     $args{board} = [];
+    $args{hole} = [];
     $args{stage} = 0;
     bless \%args, $self;
 }
@@ -215,6 +216,19 @@ things which have been passed in to L</next_stage>.
 
 sub board {
     return @{$_[0]->{board}};
+}
+
+=head3 hole
+
+Similar to C<board>, this is an opaque area where you can store your
+hole cards in whatever format you want to, if you want to.
+
+=cut
+
+sub hole {
+    my $self = shift;
+    if (@_) { $self->{hole} = [@_] }
+    @{$self->{hole}}
 }
 
 =head3 status

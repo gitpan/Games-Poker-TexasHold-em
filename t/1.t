@@ -1,4 +1,4 @@
-use Test::More tests => 38;
+use Test::More tests => 39;
 use_ok("Games::Poker::TexasHold::em"); # Test::More slightly buggy here.
   my $game = Games::Poker::TexasHold'em->new( #'
         me => "lathos",
@@ -13,11 +13,13 @@ use_ok("Games::Poker::TexasHold::em"); # Test::More slightly buggy here.
         limit => 50
   );
 
-isa_ok($game, "Games::Poker::TexasHold'em");
+isa_ok($game, "Games::Poker::TexasHold::em");
 is_deeply([$game->players], [qw[lathos MarcBeth Hectate RichardIII]],
     "->players");
 is($game->seat2name(2), "Hectate", "->seat2name");
 is($game->{unfolded}, 4, "unfolded works");
+$game->hole(1,2,3);
+is_deeply([$game->hole()], [1,2,3], "Storing hole cards works");
 
 is($game->next_to_play, "Hectate", "Hectate has the button");
 is($game->bankroll("lathos"), 500, "bankroll by name");
